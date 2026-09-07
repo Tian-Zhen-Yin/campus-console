@@ -1,0 +1,96 @@
+name: windows-smoke
+
+# Windows 冒烟：依赖安装 → 服务启动 → 端点断言 → 计划任务注册 → Edge 通道浏览器
+# 真实官网登录联调不在此范围（需人工凭据），由 Windows 真机收尾
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 检出台账仓库（服务托管目标）
+        uses: actions/checkout@v4
+        with:
+          repository: Tian-Zhen-Yin/campus-recruitment-tracker
+          path: tracker
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+
+      - name: 安装依赖
+        run: npm install --no-fund --no-audit --loglevel=error
+
+      - name: 语法检查
+        shell: pwsh
+        run: |
+          node --check src/web.mjs
+          node --check src/session.mjs
+          node --check src/notify.mjs
+          node --check src/report.mjs
+          node --check src/trackerSync.mjs
+
+      - name: 启动服务（7799）
+        shell: pwsh
+        run: |
+          $env:TRACKER_DIR = Join-Path (Get-Location) 'tracker'
+          $result = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
+            CommandLine = 'cmd /c set TRACKER_DIR=%CD%\\tracker&& set PORT=7799&& node src\\cli.mjs ui --no-open'
+            CurrentDirectory = (Get-Location).Path
+          }
+          $p = [pscustomobject]@{ Id = $result.ProcessId }
+          $ok = $false
+          foreach ($i in 1..30) {
+            try { Invoke-WebRequest -Uri 'http://127.0.0.1:7799/api/state' -UseBasicParsing -TimeoutSec 2 | Out-Null; $ok = $true; break }
+            catch { Start-Sleep -Seconds 1 }
+          }
+          if (-not $ok) { Write-Host '::error::服务未启动'; exit 1 }
+          "PID=$($p.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: 端点断言
+        shell: pwsh
+        run: |
+          $home1 = Invoke-WebRequest -Uri 'http://127.0.0.1:7799/' -UseBasicParsing
+          if ($home1.Content -notmatch '校招投递管理') { Write-Host '::error::台账标题不符'; exit 1 }
+          $console = Invoke-WebRequest -Uri 'http://127.0.0.1:7799/console/' -UseBasicParsing
+          if ($console.StatusCode -ne 200) { Write-Host '::error::控制台不可达'; exit 1 }
+          $state = Invoke-RestMethod -Uri 'http://127.0.0.1:7799/api/state'
+          if ($state.sites.Count -lt 1) { Write-Host '::error::站点列表为空'; exit 1 }
+          Write-Host "✓ 端点全部通过（sites=$($state.sites.Count)）"
+
+      - name: 计划任务注册探针
+        shell: pwsh
+        run: |
+          schtasks /Create /F /TN 'CampusSmokeProbe' /SC ONLOGON /TR 'cmd /c echo ok'
+          if ($LASTEXITCODE -ne 0) { Write-Host '::error::schtasks 注册失败'; exit 1 }
+          schtasks /Query /TN 'CampusSmokeProbe'
+          schtasks /Delete /TN 'CampusSmokeProbe' /F
+          Write-Host '✓ schtasks 可用'
+
+      - name: Edge 通道浏览器冒烟（不登录）
+        shell: pwsh
+        run: |
+          @'
+          import { chromium } from 'playwright';
+          const ctx = await chromium.launchPersistentContext('smoke-profile', { channel: 'msedge', headless: true });
+          const page = await ctx.newPage();
+          await page.goto('https://example.com', { timeout: 30000 });
+          if (!/Example/i.test(await page.title())) throw new Error('Edge 通道页面加载异常');
+          await ctx.close();
+          console.log('✓ msedge 通道可用');
+          '@ | Out-File -FilePath smoke-edge.mjs -Encoding utf8
+          node smoke-edge.mjs
+
+      - name: 清理
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:PID) { Stop-Process -Id $env:PID -Force -ErrorAction SilentlyContinue }
+          Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue

@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#5367e9">
+<title>校招投递控制台 · ats-status</title>
+<style>
+  :root {
+    --bg: #f6f8fc;
+    --surface: #ffffff;
+    --surface-soft: #f8faff;
+    --ink: #172033;
+    --muted: #697386;
+    --line: #e5eaf3;
+    --primary: #5367e9;
+    --primary-dark: #4053cb;
+    --primary-soft: #eef0ff;
+    --green: #24a475;
+    --green-soft: #e9f8f2;
+    --amber: #d38a18;
+    --amber-soft: #fff5df;
+    --red: #d95050;
+    --red-soft: #fff0f0;
+    --shadow: 0 8px 28px rgba(33, 45, 75, .07);
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; min-width: 320px; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+  button, input, select, textarea { font: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 3px solid rgba(83, 103, 233, .22); outline-offset: 2px;
+  }
+
+  /* ===== 布局骨架（同 tracker：左侧栏 + 主区） ===== */
+  .app-layout { display: grid; grid-template-columns: 238px minmax(0, 1fr); min-height: 100vh; }
+  .app-sidebar {
+    position: sticky; top: 0; z-index: 8; display: flex; flex-direction: column; height: 100vh; padding: 24px 16px 18px;
+    background: rgba(255, 255, 255, .96); border-right: 1px solid var(--line); box-shadow: 8px 0 30px rgba(33, 45, 75, .035);
+  }
+  .sidebar-brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 24px; }
+  .sidebar-brand .brand-mark {
+    display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; font-size: 20px; flex: 0 0 auto;
+    color: #fff; background: linear-gradient(145deg, #7182f2, #4659d9); box-shadow: 0 8px 18px rgba(83, 103, 233, .25);
+  }
+  .sidebar-title { font-size: 16px; font-weight: 780; white-space: nowrap; }
+  .sidebar-subtitle { margin-top: 1px; color: var(--muted); font-size: 11px; }
+  .sidebar-nav { display: grid; gap: 7px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 11px; width: 100%; min-height: 45px; padding: 0 13px; border: 0; border-radius: 11px;
+    color: #59657a; background: transparent; text-decoration: none; font-size: 14px; font-weight: 680; text-align: left; transition: .18s ease;
+  }
+  .nav-item:hover { color: var(--primary-dark); background: #f3f5ff; }
+  .nav-item.is-active { color: var(--primary-dark); background: var(--primary-soft); box-shadow: inset 3px 0 0 var(--primary); }
+  .nav-icon { display: grid; place-items: center; width: 23px; color: currentColor; font-size: 16px; flex: 0 0 auto; }
+  .nav-ext { margin-left: auto; color: #a3adc0; font-size: 12px; }
+  .sidebar-footer { margin-top: auto; padding: 14px 12px; border-radius: 12px; background: var(--green-soft); color: #23765a; font-size: 12px; }
+  .sidebar-footer strong { display: block; margin-bottom: 2px; font-size: 13px; }
+
+  .shell { min-width: 0; width: 100%; max-width: 1240px; margin: 0 auto; padding: 30px 28px 140px; }
+  #secOverview, #secSites, #secRecords, #secMail, #secImport, #secSettings { scroll-margin-top: 16px; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+  .page-kicker { margin-bottom: 2px; color: var(--primary); font-size: 12px; font-weight: 760; letter-spacing: .08em; }
+  h1 { margin: 0; font-size: 25px; letter-spacing: -.02em; }
+  .subtitle { margin: 3px 0 0; color: var(--muted); font-size: 14px; }
+  .top-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+  /* ===== 按钮（tracker btn 层级） ===== */
+  .btn, button.act {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 11px;
+    min-height: 42px; padding: 0 15px; font-weight: 650; font-size: 13.5px; transition: .18s ease;
+  }
+  .btn:hover, button.act:hover { transform: translateY(-1px); border-color: #ccd3e2; box-shadow: 0 5px 14px rgba(33, 45, 75, .08); }
+  .btn-primary, button.act.pri { border-color: var(--primary); background: var(--primary); color: #fff; }
+  .btn-primary:hover, button.act.pri:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+  .btn-soft { background: var(--primary-soft); color: var(--primary-dark); border-color: transparent; }
+  button.act.warn, .btn-danger { color: var(--red); background: var(--red-soft); border-color: transparent; }
+  button.act:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+  .icon { margin-right: 6px; }
+
+  /* ===== 卡片 / 面板 ===== */
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 22px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .panel-title { margin: 0; font-size: 17px; }
+  .panel-caption { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .panel-body { padding: 16px 18px; }
+  .panel-link { color: var(--primary); text-decoration: none; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .panel-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: 0 3px 12px rgba(33, 45, 75, .04); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+  .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+
+  /* ===== 统计卡 ===== */
+  .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+  .stat-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 14px; }
+  .stat-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--primary-soft); color: var(--primary); }
+  .stat-card:nth-child(2) .stat-icon { background: #fff1e7; color: #d66f25; }
+  .stat-card:nth-child(3) .stat-icon { background: #edf8ff; color: #2988bf; }
+  .stat-card:nth-child(4) .stat-icon { background: var(--green-soft); color: var(--green); }
+  .stat-card:nth-child(5) .stat-icon { background: var(--amber-soft); color: var(--amber); }
+  .stat-number { font-size: 32px; font-weight: 760; margin-top: 10px; letter-spacing: -.03em; }
+
+  /* ===== 状态分布 ===== */
+  .distribution { padding: 20px 22px 22px; }
+  .distribution .panel-head { padding: 0 0 17px; border-bottom: 0; }
+  .stage-grid { display: grid; grid-template-columns: repeat(5, minmax(86px, 1fr)); gap: 10px; }
+  .stage-cell { min-width: 0; padding: 10px; border: 1px solid var(--stage-border, var(--line)); border-radius: 12px; background: var(--stage-soft, var(--surface-soft)); }
+  .stage-meta { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 7px; color: var(--stage-color, var(--muted)); font-size: 12px; font-weight: 700; }
+  .stage-meta span:last-child { font-weight: 800; }
+  .bar { height: 8px; background: #edf0f6; border-radius: 999px; overflow: hidden; }
+  .bar-fill { height: 100%; min-width: 0; border-radius: inherit; background: var(--stage-color, var(--primary)); transition: width .25s ease; }
+  .stage-cell[data-status="APPLIED"],   .b-APPLIED   { --stage-color: #356fd6; --stage-soft: #edf4ff; --stage-border: #cadcff; }
+  .stage-cell[data-status="VIEWED"],    .b-VIEWED    { --stage-color: #16869f; --stage-soft: #eaf8fb; --stage-border: #bfe5ec; }
+  .stage-cell[data-status="SCREENING"], .b-SCREENING { --stage-color: #5367e9; --stage-soft: #eef0ff; --stage-border: #d7dcfa; }
+  .stage-cell[data-status="EXAM"],      .b-EXAM      { --stage-color: #b87812; --stage-soft: #fff5df; --stage-border: #f1dba9; }
+  .stage-cell[data-status="INTERVIEW"], .b-INTERVIEW { --stage-color: #6c52bd; --stage-soft: #f2efff; --stage-border: #d9d0fa; }
+  .stage-cell[data-status="OFFER"],     .b-OFFER     { --stage-color: #17825b; --stage-soft: #e9f8f2; --stage-border: #bde7d5; }
+  .stage-cell[data-status="TALENT"],    .b-TALENT    { --stage-color: #b54889; --stage-soft: #fff0f8; --stage-border: #f0c9df; }
+  .stage-cell[data-status="REJECTED"],  .b-REJECTED  { --stage-color: #b94747; --stage-soft: #fff0f0; --stage-border: #f0c8c8; }
+  .stage-cell[data-status="CLOSED"],    .b-CLOSED    { --stage-color: #657084; --stage-soft: #f0f2f5; --stage-border: #d9dee7; }
+  .stage-cell[data-status="UNKNOWN"],   .b-UNKNOWN   { --stage-color: #8a94a8; --stage-soft: #f5f7fa; --stage-border: #dfe4ec; }
+
+  /* ===== 状态徽章（tracker 软色胶囊） ===== */
+  .b {
+    display: inline-flex; align-items: center; min-height: 26px; padding: 2px 10px; border: 1px solid var(--stage-border, transparent);
+    border-radius: 8px; background: var(--stage-soft, var(--primary-soft)); color: var(--stage-color, var(--primary-dark));
+    font-size: 12px; font-weight: 760; white-space: nowrap;
+  }
+  .b-INFO { --stage-color: #59657a; --stage-soft: #f0f2f5; --stage-border: #d9dee7; }
+
+  /* ===== 横幅 ===== */
+  .banner { border-radius: 14px; padding: 13px 16px; margin: 0 0 12px; border: 1px solid; font-size: 13.5px; box-shadow: 0 3px 12px rgba(33, 45, 75, .04); }
+  .banner.busy { background: var(--primary-soft); border-color: #d7dcfa; color: var(--primary-dark); }
+  .banner.sess { background: var(--amber-soft); border-color: #f1dba9; color: #8a5a10; }
+  .banner.err { background: var(--red-soft); border-color: #f0c8c8; color: #943434; }
+  .banner.ok { background: var(--green-soft); border-color: #bde7d5; color: #1d7a58; }
+  .banner .row { margin-top: 8px; }
+
+  /* ===== 站点卡 ===== */
+  .site { display: flex; flex-direction: column; gap: 9px; }
+  .site .hd { display: flex; align-items: center; gap: 8px; }
+  .site .hd strong { font-size: 15px; }
+  .tag { padding: 2px 9px; border-radius: 8px; font-size: 11px; font-weight: 760; white-space: nowrap; border: 1px solid transparent; }
+  .t-low { background: var(--green-soft); color: #17825b; border-color: #bde7d5; }
+  .t-mid { background: var(--amber-soft); color: #a06a0f; border-color: #f1dba9; }
+  .t-high { background: var(--red-soft); color: #b94747; border-color: #f0c8c8; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: #f0f2f5; border: 1px solid #d9dee7; border-radius: 8px; padding: 2px 9px; font-size: 12px; color: #59657a; }
+  .chip.on { background: var(--green-soft); border-color: #bde7d5; color: #1d7a58; }
+  .chip.off { background: var(--red-soft); border-color: #f0c8c8; color: #943434; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .site .dim { overflow-wrap: anywhere; }
+  /* 站点卡片：查询结果迷你列表 */
+  .rec-edit { display: flex; gap: 8px; margin: 6px 0 2px; width: 100%; }
+  .rec-edit select { min-height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; background: #fff; color: inherit; }
+  .rec-list { display: grid; gap: 5px; margin: 10px 0 2px; max-height: 208px; overflow-y: auto; padding-right: 2px; }
+  .rec-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 5px 8px; background: #f8f9fc; border-radius: 8px; }
+  .rec-job { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .rec-city { color: var(--muted); font-size: 11.5px; flex: 0 0 auto; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rec-at { color: var(--muted); font-size: 11px; flex: 0 0 auto; }
+  .rec-badge { flex: 0 0 auto; border-radius: 6px; padding: 1px 7px; font-size: 11px; font-weight: 700; background: #eef1f6; color: #5a6579; }
+  .rec-badge.b-OFFER { background: var(--green-soft); color: #1d7a58; }
+  .rec-badge.b-REJECTED, .rec-badge.b-CLOSED { background: var(--red-soft); color: #943434; }
+  .rec-badge.b-TALENT { background: var(--amber-soft); color: #8a5a10; }
+  .rec-badge.b-SCREENING { background: #e8f1ff; color: #2d6fc1; }
+  .rec-badge.b-TEST, .rec-badge.b-INTERVIEW1, .rec-badge.b-INTERVIEW2, .rec-badge.b-HRFACE { background: #ece7fb; color: #6a4bc9; }
+  .rec-empty { color: var(--muted); font-size: 12px; margin: 8px 0; }
+
+  /* ===== 表格 ===== */
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 720px; }
+  th { padding: 12px 16px; color: var(--muted); font-size: 12px; font-weight: 700; text-align: left; background: #fafbfe; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  td { padding: 13px 16px; border-top: 1px solid var(--line); vertical-align: middle; font-size: 13.5px; }
+  tbody tr { transition: background .15s ease; }
+  tbody tr:hover { background: #fbfcff; }
+  tbody tr:first-child td { border-top: 0; }
+
+  .dim { color: var(--muted); font-size: 12.5px; }
+  .cand { background: var(--surface-soft); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; margin-top: 9px; font-size: 13px; }
+  .cand label { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; cursor: pointer; }
+  .cand .u { font-family: ui-monospace, Menlo, monospace; font-size: 12px; word-break: break-all; }
+  textarea {
+    width: 100%; min-height: 92px; border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px;
+    font: 13px/1.6 inherit; resize: vertical; background: #fff; color: var(--ink);
+  }
+  input[type=text], input[type=password] { border: 1px solid var(--line); border-radius: 11px; padding: 9px 12px; font-size: 13.5px; width: 100%; background: #fff; color: var(--ink); }
+  select { border: 1px solid var(--line); border-radius: 11px; padding: 9px 12px; font-size: 13.5px; width: 100%; background: #fff; color: var(--ink); }
+  label.f { display: block; font-size: 12.5px; font-weight: 700; color: #3c475b; margin: 12px 0 5px; }
+  .lv-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+
+  /* ===== 日志抽屉 / Toast ===== */
+  #drawer { position: fixed; left: 0; right: 0; bottom: 0; background: #202a40; color: #c6cede; z-index: 30; transition: transform .25s; box-shadow: 0 -8px 30px rgba(20, 29, 54, .25); }
+  #drawer.closed { transform: translateY(calc(100% - 36px)); }
+  #drawer .bar { display: flex; align-items: center; padding: 8px 16px; cursor: pointer; user-select: none; }
+  #drawer .bar strong { font-size: 12px; color: #8f9ab3; }
+  #drawer pre { margin: 0; padding: 0 16px 14px; max-height: 200px; overflow-y: auto; font: 12px/1.7 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
+  .toast {
+    position: fixed; z-index: 50; left: 50%; bottom: 28px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+    background: #202a40; color: #fff; border-radius: 11px; padding: 11px 17px; box-shadow: 0 10px 30px rgba(20, 29, 54, .2);
+    transition: .22s ease; font-size: 14px;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .empty { padding: 44px 20px; text-align: center; color: var(--muted); }
+  .empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+  /* ===== 响应式（同 tracker 断点） ===== */
+  @media (max-width: 1100px) {
+    .app-layout { grid-template-columns: 210px minmax(0, 1fr); }
+    .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .stage-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (max-width: 900px) {
+    .app-layout { display: block; }
+    .app-sidebar { height: auto; padding: 10px 14px; flex-direction: row; align-items: center; border-right: 0; border-bottom: 1px solid var(--line); }
+    .sidebar-brand { margin-right: 8px; padding: 0; }
+    .sidebar-brand .brand-mark { width: 38px; height: 38px; }
+    .sidebar-brand > div:last-child, .sidebar-footer, .nav-ext { display: none; }
+    .sidebar-nav { display: flex; min-width: 0; overflow-x: auto; gap: 5px; scrollbar-width: none; }
+    .sidebar-nav::-webkit-scrollbar { display: none; }
+    .nav-item { width: auto; min-width: max-content; min-height: 38px; padding: 0 11px; }
+    .nav-item.is-active { box-shadow: none; }
+    .shell { padding: 22px 16px 120px; }
+  }
+  @media (max-width: 780px) {
+    .topbar { align-items: flex-start; }
+    .top-actions .btn { font-size: 0; width: 44px; padding: 0; }
+    .top-actions .btn .icon { margin: 0; font-size: 17px; }
+    .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stage-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    body { padding-bottom: env(safe-area-inset-bottom); }
+    .app-sidebar { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+    .shell { padding: 16px 11px calc(120px + env(safe-area-inset-bottom)); }
+    .topbar { flex-direction: column; gap: 13px; margin-bottom: 18px; }
+    .top-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(42px, 1fr)); width: 100%; gap: 7px; }
+    .top-actions .btn { width: 100%; }
+    h1 { font-size: 21px; }
+    .subtitle { display: none; }
+    .stat-card { padding: 15px; }
+    .stat-number { font-size: 27px; }
+    .stats .stat-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+    .stage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .panel-head { padding: 16px 15px; }
+    .panel-body { padding: 14px 13px; }
+    .distribution { padding: 16px 15px; }
+    .settings-grid { grid-template-columns: 1fr; }
+    .table-scroll { overflow: visible; }
+    table { min-width: 0; }
+    thead { display: none; }
+    tbody { display: grid; gap: 12px; padding: 12px; }
+    tbody tr { display: block; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 5px 16px rgba(33, 45, 75, .05); }
+    tbody td { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 13px; font-size: 13px; }
+    tbody td:first-child { display: block; padding: 12px 13px; border-top: 0; background: var(--surface-soft); }
+    tbody td::before { content: attr(data-label); color: var(--muted); font-size: 11px; font-weight: 700; }
+    tbody td:first-child::before { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+  <aside class="app-sidebar" aria-label="主导航">
+    <div class="sidebar-brand">
+      <div class="brand-mark" aria-hidden="true">🎛</div>
+      <div><div class="sidebar-title">校招投递控制台</div><div class="sidebar-subtitle">官方状态聚合 · 数据不出电脑</div></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="#secOverview"><span class="nav-icon">⌂</span><span>总览</span></a>
+      <a class="nav-item" href="#secSites"><span class="nav-icon">◎</span><span>官网引擎</span></a>
+      <a class="nav-item" href="#secMail"><span class="nav-icon">✉</span><span>邮件与推送</span></a>
+      <a class="nav-item nav-tracker" href="/" title="投递记录、岗位库、截图识别、状态同步——日常在这里"><span class="nav-icon">📋</span><span>投递台账</span><span class="nav-ext">↗</span></a>
+      <a class="nav-item" href="/console" title="官方状态明细、诊断面板、数据位置"><span class="nav-icon">▤</span><span>高级与诊断</span></a>
+      <a class="nav-item" href="/guide" target="_blank"><span class="nav-icon">□</span><span>使用指南</span><span class="nav-ext">↗</span></a>
+    </nav>
+    <div class="sidebar-footer"><strong>数据保存在本机</strong>会话与查询结果只存 ~/.ats-status，不联网上传</div>
+  </aside>
+
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <div class="page-kicker">ATS CONSOLE</div>
+        <h1>校招投递控制台</h1>
+        <p class="subtitle">六家官网投递状态聚合 · <span id="nowTxt"></span></p>
+      </div>
+      <div class="top-actions">
+        <button class="btn" onclick="act('/api/inspect',{})" title="巡检各站点会话与接口"><span class="icon">◎</span>巡检</button>
+        <button class="btn btn-primary" onclick="act('/api/status',{})" title="查询全部已接入站点"><span class="icon">↻</span>立即查询全部</button>
+        <button class="btn" onclick="act('/api/report',{})" title="生成 dashboard.html"><span class="icon">▤</span>生成面板</button>
+      </div>
+    </header>
+
+    <div id="alerts"></div>
+    <div id="inspectBox"></div>
+
+    <section class="stats" id="secOverview" aria-label="投递概览">
+      <article class="stat-card"><div class="stat-top"><span>投递总数</span><span class="stat-icon">▤</span></div><div class="stat-number" id="statTotal">0</div></article>
+      <article class="stat-card"><div class="stat-top"><span>进行中</span><span class="stat-icon">↻</span></div><div class="stat-number" id="statActive">0</div></article>
+      <article class="stat-card"><div class="stat-top"><span>笔试·面试</span><span class="stat-icon">✎</span></div><div class="stat-number" id="statExam">0</div></article>
+      <article class="stat-card"><div class="stat-top"><span>Offer</span><span class="stat-icon">✓</span></div><div class="stat-number" id="statOffer">0</div></article>
+      <article class="stat-card"><div class="stat-top"><span>邮件提醒</span><span class="stat-icon">✉</span></div><div class="stat-number" id="statMail">0</div></article>
+    </section>
+
+    <section class="panel distribution" aria-label="状态分布">
+      <div class="panel-head">
+        <div><h2 class="panel-title">状态分布</h2><div class="panel-caption">官方状态归一后的整体分布（含手工列表）</div></div>
+      </div>
+      <div class="stage-grid" id="statusGrid"></div>
+    </section>
+
+    <section class="panel" id="secSites" aria-label="站点接入">
+      <div class="panel-head">
+        <div><h2 class="panel-title">站点接入</h2><div class="panel-caption">登录 = 扫码/短信一次；抓包 = 打开「我的投递」页让工具认接口</div></div>
+      </div>
+      <div class="panel-body grid" id="sites"></div>
+    </section>
+
+    <section class="panel" id="secRecords" aria-label="投递明细">
+      <div class="panel-head">
+        <div><h2 class="panel-title">投递总览</h2><div class="panel-caption"><span id="ovCount"></span></div></div>
+        <a class="panel-link" href="/dashboard" target="_blank">完整面板（dashboard.html）↗</a>
+      </div>
+      <div class="table-scroll" id="overview"></div>
+    </section>
+
+    <section class="panel" id="secMail" aria-label="邮件通知">
+      <div class="panel-head">
+        <div><h2 class="panel-title">邮件通知</h2><div class="panel-caption">笔试/面试邀约大多走邮件——IMAP 官方授权拉取，零风控风险</div></div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <button class="act" onclick="pollMailNow()">↻ 立即拉取</button>
+          <a class="panel-link" href="javascript:void(0)" onclick="document.querySelector('#mailCard').scrollIntoView({behavior:'smooth'})">配置邮箱 ↓</a>
+        </div>
+      </div>
+      <div class="table-scroll" id="mailBox"></div>
+    </section>
+
+    
+
+    <section id="secSettings" aria-label="设置与帮手">
+      <div class="settings-grid">
+        <div class="card" id="mailCard">
+          <strong>邮箱监控</strong> <span class="dim" id="mailState"></span>
+          <div class="chips" id="mailAccounts" style="margin:8px 0"></div>
+          <label class="f">邮箱服务商</label>
+          <select id="mailProvider" style="width:100%;margin-bottom:8px">
+            <option value="163">163 邮箱</option>
+            <option value="qq">QQ 邮箱</option>
+            <option value="gmail">Gmail</option>
+          </select>
+          <label class="f">邮箱账号（IMAP 官方授权拉取，可配置多个）</label>
+          <input type="text" id="mailUser" placeholder="xxx@163.com">
+          <label class="f">IMAP 授权码（不是登录密码；留空 = 沿用已保存的）</label>
+          <input type="password" id="mailPass" placeholder="">
+          <div class="row" style="margin-top:12px">
+            <button class="act pri" onclick="saveMailCfg()">保存 / 更新此邮箱</button>
+            <button class="act" onclick="testMail()">测试连接</button>
+            <button class="act" onclick="pollMailNow()">全部拉取</button>
+          </div>
+          <p class="dim" style="margin-bottom:0">开启方法：邮箱网页版设置里开启 IMAP 服务并生成授权码（163：设置→POP3/SMTP/IMAP；QQ：设置→账户）。可添加多个邮箱，每轮查询会全部拉取；笔试/面试邮件推送到飞书，邮件只存本机。</p>
+        </div>
+        <div class="card">
+          <strong>飞书推送</strong> <span class="dim" id="fState"></span>
+          <label class="f">群机器人 webhook</label>
+          <input type="text" id="fHook" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxxx">
+          <label class="f">签名密钥（没开签名就留空）</label>
+          <input type="password" id="fSecret" placeholder="留空 = 不变；填 skip = 清除">
+          <div class="row" style="margin-top:12px">
+            <button class="act pri" onclick="saveFeishu()">保存</button>
+            <button class="act" onclick="testFeishu()">发测试卡片</button>
+          </div>
+          <p class="dim" style="margin-bottom:0">有状态变化时往群里推卡片。建机器人：飞书群 → 设置 → 群机器人 → 自定义机器人。webhook 别外发。</p>
+        </div>
+        <div class="card">
+          <strong>定时任务</strong>
+          <div class="chips" style="margin:10px 0">
+            <span class="chip" id="laKa">服务常驻：检测中…</span>
+            <span class="chip" id="laRp">查询+邮件定时：检测中…</span>
+          </div>
+          <div class="row"><button class="act" onclick="act('/api/keepalive',{})">手动保活一轮</button></div>
+          <p class="dim" style="margin-bottom:0">定时任务已随控制台自动安装（上方显示「已安装」即在工作日 9:30 / 14:30 / 20:00 自动查询并检查邮箱）。装好后本页不用开着，定时任务自己跑；本页只是遥控器。</p>
+        </div>
+        <div class="card">
+          <strong>数据位置</strong>
+          <p class="dim" id="homeTxt" style="margin-bottom:8px"></p>
+          <p class="dim" style="margin-bottom:0">每次查状态成功后，自动把官方状态汇总为状态包 <code>out/tracker-sync.json</code>，供「校招投递管理」的状态同步面板读取。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="drawer" class="closed">
+  <div class="bar" onclick="this.parentNode.classList.toggle('closed')"><strong>活动日志（点这里收起/展开）</strong></div>
+  <pre id="logs">（暂无）</pre>
+</div>
+<div class="toast" id="toast"></div>
+
+<div id="siteOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:60;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:18px 20px;width:460px;max-width:92vw;max-height:88vh;overflow:auto">
+    <strong id="sfTitle">添加站点</strong>
+    <input type="hidden" id="sfKey" value=""><input type="hidden" id="sfBuiltin" value="0">
+    <label class="f">站点名称 *</label>
+    <input type="text" id="sfLabel" placeholder="例如：B站">
+    <label class="f">入口 URL *</label>
+    <input type="text" id="sfEntry" placeholder="https://careers.xxx.com/">
+    <label class="f">风险等级</label>
+    <select id="sfRisk">
+      <option value="low">低风险</option>
+      <option value="mid" selected>中风险</option>
+      <option value="high">高风险</option>
+    </select>
+    <label class="f">保活间隔（小时，起始；会话短的站点可调小）</label>
+    <input type="text" id="sfStart" value="12">
+    <label class="f">登录/操作提示（可选）</label>
+    <input type="text" id="sfNote" placeholder="登录后打开「我的投递」页…">
+    <div class="row" style="margin-top:12px">
+      <button class="act pri" onclick="saveSiteForm()">保存</button>
+      <button class="act" onclick="closeSiteForm()">取消</button>
+      <button class="act warn" id="sfDelete" style="display:none;margin-left:auto" onclick="deleteSiteFromForm()">删除此站点</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let S = null;           // 最近一次 /api/state
+let pollTimer = null;
+const candStore = {};   // 抓包会话 id → 候选接口数据（自动刷新时按 candSel 重画，不再冲掉勾选）
+const candSel = {};     // 抓包会话 id → 当前勾选的候选序号
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cn = (at) => at ? new Date(at).toLocaleString('zh-CN', { hour12: false }) : '';
+const $ = (id) => document.getElementById(id);
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2200); }
+
+// 状态归一（与后端 extract.mjs 同规则）
+function normalize(raw) {
+  const t = String(raw ?? '');
+  const R = [
+    [/offer|录用|录取/i, 'OFFER'], [/不匹配|不合适|淘汰|未通过|拒绝|终止|释放|已挂/i, 'REJECTED'], [/面试/i, 'INTERVIEW'],
+    [/笔试/i, 'EXAM'], [/人才池|人才库/i, 'TALENT'], [/已查看|已读|已查阅/i, 'VIEWED'], [/已关闭|已结束|已取消|撤销|已入职|已完成|已处理/i, 'CLOSED'],
+    [/筛选|评估|评审|审核|处理中|进行中|初筛|终筛/i, 'SCREENING'], [/投递|申请|提交|待处理|待查看|已接收|新简历/i, 'APPLIED'],
+  ];
+  for (const [re, k] of R) if (re.test(t)) return k;
+  return 'UNKNOWN';
+}
+const badge = (raw) => `<span class="b b-${normalize(raw)}">${esc(raw || '未知')}</span>`;
+
+async function api(path, body) {
+  const res = await fetch(path, { method: body === undefined ? 'GET' : 'POST', headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
+async function act(path, body) {
+  try { await api(path, body); toast('已提交'); }
+  catch (e) { toast(e.message); }
+  await refresh();
+}
+
+async function refresh() {
+  try { S = await api('/api/state'); } catch { return; }
+  render();
+  schedule();
+}
+function schedule() {
+  const need = S && ((S.busy && !S.busy.done) || (S.sessions && S.sessions.length));
+  if (need && !pollTimer) pollTimer = setInterval(refresh, 1500);
+  if (!need && pollTimer) { clearInterval(pollTimer); pollTimer = null; setTimeout(refresh, 2500); }
+}
+
+function render() {
+  $('nowTxt').textContent = '· ' + new Date(S.now).toLocaleTimeString('zh-CN', { hour12: false });
+  $('homeTxt').textContent = '全部数据在本机 ' + S.home + '（会话 profiles / 接口定义 / 查询结果 / 面板），不联网上传。';
+  renderAlerts();
+  renderInspect();
+  renderSites();
+  renderOverview();
+  renderApps();
+  renderMail();
+  renderSettings();
+  renderLogs();
+}
+
+function renderAlerts() {
+  let h = '';
+  let residentDetailsOpen = window.__resDetailsOpen === true;
+  if (S.busy) {
+    h += `<div class="banner ${S.busy.error ? 'err' : 'busy'}"><strong>${S.busy.done ? (S.busy.error ? '❌ 上次任务失败：' + esc(S.busy.error) : '✅ 上次任务完成：' + esc(S.busy.kind)) : '⏳ 正在执行：' + esc(S.busy.kind) + ' …（页面自动刷新）'}</strong></div>`;
+  }
+  // 已确认的常驻浏览器：压缩为一行摘要（详情可展开）；待登录的保持醒目横幅
+  const confirmed = (S.residents || []).filter((r) => r.confirmed);
+  const pending = (S.residents || []).filter((r) => !r.confirmed);
+  if (confirmed.length) {
+    h += `<div class="banner ok" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <strong>🟢 常驻浏览器 × ${confirmed.length} 运行中</strong>
+      <span class="dim">${confirmed.map((r) => esc(r.label)).join('、')} —— 窗口保持打开，别关</span>
+      <span style="flex:1"></span>
+      <button class="act" onclick="toggleResDetails()">${residentDetailsOpen ? '收起' : '详情'}</button>
+    </div>`;
+    if (residentDetailsOpen) {
+      h += `<div class="banner ok" style="border-color:#6ee7b7">` + confirmed.map((r) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0;flex-wrap:wrap">
+          <strong>${esc(r.label)}</strong>
+          <span class="dim">${esc((r.pageUrl || '').slice(0, 90))}</span>
+          <span style="flex:1"></span>
+          <button class="act warn" onclick="act('/api/resident/close',{site:'${r.site}'})">关闭此标签页</button>
+        </div>`).join('') + `
+        <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px dashed #a7f3d0">
+          <span class="dim">整个常驻浏览器（会关闭所有站点登录）：</span>
+          <button class="act warn" onclick="act('/api/resident/browser/close',{})">关闭整个常驻浏览器</button>
+        </div></div>`;
+    }
+  }
+  for (const r of pending) {
+    h += `<div class="banner sess" id="res-${r.site}"><strong>🟡 ${esc(r.label)} · 常驻浏览器待登录</strong> —— 请在弹出的 Chrome 里完成登录，直到能看到「我的投递」列表，然后回来点「登录完成」。`;
+    if (r.pageUrl) h += `<div class="dim">浏览器当前页面：${esc(r.pageUrl.slice(0, 110))}</div>`;
+    h += `<div class="row"><button class="act pri" onclick="act('/api/resident/confirm',{site:'${r.site}'})">登录完成</button>`;
+    h += `<button class="act warn" onclick="act('/api/resident/close',{site:'${r.site}'})">放弃</button></div></div>`;
+  }
+  for (const s of S.sessions) {
+    h += `<div class="banner sess" id="sess-${s.id}"><strong>🖥 ${esc(s.label)} · ${s.kind === 'login' ? '登录' : '抓包'}会话进行中</strong> —— Chrome 窗口已弹出，去那边操作。`;
+    if (s.kind === 'login') {
+      h += `<div class="row"><button class="act pri" onclick="confirmLogin('${s.id}')">我登录好了</button>`;
+    } else {
+      h += `<div class="row"><button class="act pri" onclick="scanCand('${s.id}')">识别候选接口</button>`;
+    }
+    h += `<button class="act warn" onclick="abortSession('${s.id}')">放弃</button></div>`;
+    h += `<div class="candbox" id="cand-${s.id}"></div></div>`;
+  }
+  $('alerts').innerHTML = h;
+  for (const s of S.sessions) if (s.kind === 'capture' && candStore[s.id]) renderCandBox(s.id);
+}
+function toggleResDetails() { window.__resDetailsOpen = !(window.__resDetailsOpen === true); renderAlerts(); }
+function renderCandBox(id) {
+  const box = $('cand-' + id);
+  if (!box) return;
+  const cands = candStore[id];
+  if (!cands) { box.innerHTML = ''; return; }
+  if (!cands.length) {
+    box.innerHTML = '<div class="dim" style="padding:6px 0">没扫到候选——确认已在浏览器里登录并打开「我的投递」页加载完成，再点一次「识别候选接口」。</div>';
+    return;
+  }
+  const sel = candSel[id] ?? 0;
+  box.innerHTML = `<div class="cand"><strong>候选接口（选一个）</strong>` + cands.map((c, i) => `
+    <label><input type="radio" name="cand-${id}" value="${i}" ${sel === i ? 'checked' : ''} onchange="candSel['${id}']=${i}">
+    <span><span class="u">[${c.index + 1}] ${esc(c.method)} ${esc(c.url)}</span><br>
+    <span class="dim">http ${c.status} · 识别到投递记录 ${c.records.length} 条 · 来源 ${esc(c.pageUrl)}</span>
+    ${c.records.length ? '<br>' + c.records.slice(0, 3).map((x) => `<span class="dim">${esc(x.job)} → ${esc(x.statusRaw)}</span>`).join(' · ') : ''}</span></label>`).join('') +
+    `<div class="row" style="margin-top:6px"><button class="act pri" onclick="pickCand('${id}')">保存所选接口</button>
+    <button class="act" onclick="scanCand('${id}')">重新识别</button></div></div>`;
+}
+function openSiteForm(key) {
+  api('/api/state', undefined).then((st) => {
+    const s = key ? (st.sites || []).find((x) => x.site === key) : null;
+    document.getElementById('sfKey').value = key || '';
+    document.getElementById('sfBuiltin').value = s && s.builtin ? '1' : '0';
+    document.getElementById('sfTitle').textContent = s ? (s.builtin ? '编辑内置站点：' + s.label : '编辑站点：' + s.label) : '添加站点';
+    document.getElementById('sfLabel').value = s ? s.label : '';
+    document.getElementById('sfEntry').value = s && s.entry ? s.entry : '';
+    document.getElementById('sfRisk').value = s ? s.riskLevel : 'mid';
+    document.getElementById('sfStart').value = s && s.heartbeat ? String(Math.round(s.heartbeat.startMin / 60)) : '12';
+    document.getElementById('sfNote').value = s && s.loginNote ? s.loginNote : '';
+    document.getElementById('sfDelete').style.display = s && !s.builtin ? '' : 'none';
+    document.getElementById('siteOverlay').style.display = 'flex';
+  });
+}
+function closeSiteForm() { document.getElementById('siteOverlay').style.display = 'none'; }
+async function saveSiteForm() {
+  try {
+    await api('/api/sites/save', { key: document.getElementById('sfKey').value, builtin: document.getElementById('sfBuiltin').value === '1', label: document.getElementById('sfLabel').value.trim(), entry: document.getElementById('sfEntry').value.trim(), risk: document.getElementById('sfRisk').value, startHours: Number(document.getElementById('sfStart').value) || 12, loginNote: document.getElementById('sfNote').value.trim() });
+    closeSiteForm(); toast('已保存');
+  } catch (e) { toast(e.message); }
+  await refresh();
+}
+async function deleteSite(key, label) {
+  if (!confirm('确认删除站点「' + label + '」？其会话与数据将一并清除。')) return;
+  try { await api('/api/sites/delete', { key }); toast('已删除'); } catch (e) { toast(e.message); }
+  await refresh();
+}
+async function deleteSiteFromForm() {
+  const key = document.getElementById('sfKey').value;
+  const label = document.getElementById('sfLabel').value;
+  if (!confirm('确认删除站点「' + label + '」？')) return;
+  try { await api('/api/sites/delete', { key }); closeSiteForm(); toast('已删除'); } catch (e) { toast(e.message); }
+  await refresh();
+}
+async function confirmLogin(id) { try { const r = await api('/api/login/confirm', { id }); toast(`登录完成，已保存 ${r.cookies} 条 cookie`); } catch (e) { toast(e.message); } await refresh(); }
+const LV = {
+  ok:   { dot: '#24a475', txt: '正常' },
+  warn: { dot: '#d38a18', txt: '存疑' },
+  dead: { dot: '#d95050', txt: '失效' },
+  none: { dot: '#8a94a8', txt: '未接入' },
+};
+const lvDot = (lv) => `<span class="lv-dot" style="background:${(LV[lv]||LV.none).dot}"></span>`;
+function renderInspect() {
+  const box = $('inspectBox');
+  const ins = S.lastInspection;
+  if (!ins) { box.innerHTML = ''; return; }
+  const rows = ins.items.map((i) => `
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;flex-wrap:wrap">
+      ${lvDot(i.session.level)}
+      <strong style="min-width:70px">${esc(i.label)}</strong>
+      <span class="dim" style="flex:1">${esc(i.session.detail)}</span>
+      <span class="dim">接口：${esc(i.spec)}</span>
+      <span class="dim">${i.last ? `最近同步 ${cn(i.last.at)} · ${i.last.count} 条` : '从未查询'}</span>
+    </div>`).join('');
+  const mailLv = ins.mail.level;
+  box.innerHTML = `<div class="card" style="margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <strong>🔎 巡检报告</strong>
+      <span class="dim">${cn(ins.at)}</span>
+      <span class="dim">常驻浏览器：${ins.browserAlive ? '运行中 🟢' : '未运行'}</span>
+      <span style="flex:1"></span>
+      <span class="dim">邮箱：${(LV[mailLv]||LV.none).txt}</span>
+    </div>
+    ${rows}
+  </div>`;
+}
+async function abortSession(id) { try { await api('/api/login/abort', { id }); delete candStore[id]; delete candSel[id]; toast('已放弃'); } catch (e) { toast(e.message); } await refresh(); }
+
+async function scanCand(id) {
+  try {
+    const r = await api('/api/capture/scan', { id });
+    candStore[id] = r.candidates;
+    if (!(id in candSel)) candSel[id] = 0;
+    renderCandBox(id);
+  } catch (e) { toast(e.message); }
+}
+async function pickCand(id) {
+  const el = document.querySelector(`input[name="cand-${id}"]:checked`);
+  if (!el) { toast('先选一个候选接口'); return; }
+  try {
+    const r = await api('/api/capture/pick', { id, index: Number(el.value) });
+    toast(r.verified ? `已保存（API 模式，已验证，识别 ${r.records} 条）` : `已保存（页面模式，API 直连不可用）`);
+    await refresh();
+  } catch (e) { toast(e.message); await refresh(); }
+}
+
+function renderSites() {
+  const resSites = new Set((S.residents || []).map((r) => r.site));
+  const locked = (S.busy && !S.busy.done) || S.sessions.length;
+  $('sites').innerHTML = S.sites.map((s) => {
+    const chips = [
+      s.hasProfile ? '<span class="chip on">会话 ✓</span>' : '<span class="chip off">未登录</span>',
+      resSites.has(s.key) ? '<span class="chip on">常驻浏览器 🟢</span>' : '',
+      s.spec ? `<span class="chip on">接口 · ${s.spec.mode} 模式${s.spec.verified ? '（已验证）' : ''}</span>` : (s.hasSeeds ? '<span class="chip">接口 · 有预置</span>' : '<span class="chip off">接口 · 未抓包</span>'),
+      s.last ? `<span class="chip">最近同步 ${cn(s.last.at)} · ${s.last.records.length} 条</span>` : '',
+      s.heartbeat ? `<span class="chip">保活 ${Math.round(s.heartbeat.intervalMin / 60)}h</span>` : '',
+    ].join('');
+    const records = (s.last && s.last.records || []);
+    const badgeCls = (code) => `rec-badge b-${esc(String(code || 'UNKNOWN').toUpperCase())}`;
+    const shortDate = (v) => String(v || '').slice(0, 10);
+    const rows = records.length
+      ? `<div class="rec-list">${records.map((r, ri) => `<div class="rec-row" title="${esc(r.statusRaw || '')}${r.dept ? ' · ' + esc(r.dept) : ''}">
+            <span class="rec-job">${esc(r.job)}${r.corrected ? ' <span class="chip on" style="font-size:11px">✎已人工修正</span>' : ''}</span>
+            <span class="rec-city">${esc(r.city || '')}</span>
+            <span class="${badgeCls(r.status)}">${esc(r.statusRaw || r.status || '未知')}</span>
+            <span class="rec-at">${esc(shortDate(r.appliedAt))}</span>
+            <button class="act" style="margin-left:auto" onclick="toggleRecordEdit('${s.key}', ${ri})">改</button>
+            <div class="rec-edit" id="rec-edit-${s.key}-${ri}" hidden>
+              <select id="rec-status-${s.key}-${ri}">${statusOptions()}</select>
+              <button class="act pri" onclick="saveRecordStatus('${s.key}', '${esc(r.job)}', ${ri})">保存</button>
+              ${r.corrected ? `<button class="act" onclick="resetRecordStatus('${s.key}', '${esc(r.job)}')">还原官网</button>` : ''}
+            </div>
+          </div>`).join('')}</div>`
+      : '<div class="rec-empty">暂无查询记录——点「查状态」拉取最新投递状态</div>';
+    return `<div class="card site">
+      <div class="hd"><strong>${esc(s.label)}</strong><span class="tag t-${s.riskLevel}">${s.riskLevel === 'high' ? '高风险' : s.riskLevel === 'mid' ? '中风险' : '低风险'}</span></div>
+      <div class="chips">${chips}</div>
+      ${rows}
+      <div class="row">
+        <button class="act pri" ${locked || resSites.has(s.key) ? 'disabled' : ''} title="普通登录：登录后浏览器关闭（会话级 cookie 的站点不适用）" onclick="act('/api/login',{site:'${s.key}'})">登录</button>
+        <button class="act" ${locked || resSites.has(s.key) ? 'disabled' : ''} onclick="act('/api/resident',{site:'${s.key}'})" title="推荐：登录后浏览器保持打开，查询直接骑在它上面">常驻登录</button>
+        <button class="act" ${(locked && !resSites.has(s.key)) ? 'disabled' : ''} onclick="act('/api/capture',{site:'${s.key}'})" title="${resSites.has(s.key) ? '挂在常驻浏览器上录制' : '打开浏览器录制状态接口'}">抓包</button>
+        <button class="act" ${locked ? 'disabled' : ''} onclick="act('/api/status',{site:'${s.key}'})">查状态</button>
+        <button class="act" style="margin-left:auto" onclick="openSiteForm('${s.key}')" title="编辑名称/入口/保活等">编辑</button>
+        ${s.builtin ? "" : `<button class="act warn" onclick="deleteSite('${s.key}','${esc(s.label)}')" title="删除该自定义站点（含会话与数据）">删除</button>`}
+      </div>
+    </div>`;
+  }).join('') + `
+    <div class="card site" style="display:flex;align-items:center;justify-content:center;min-height:120px;border-style:dashed;cursor:pointer;color:#64748b" onclick="openSiteForm('')">
+      <div style="text-align:center"><div style="font-size:26px;line-height:1">＋</div><div style="margin-top:6px">添加站点</div></div>
+    </div>`;
+}
+
+// 概览统计与状态分布（纯展示：由 renderOverview 的 rows 派生）
+const STATUS_META = [
+  ['APPLIED', '已投递'], ['VIEWED', '已查看'], ['SCREENING', '筛选中'], ['EXAM', '笔试'], ['INTERVIEW', '面试中'],
+  ['OFFER', 'Offer'], ['TALENT', '人才池'], ['REJECTED', '不合适'], ['CLOSED', '已结束'], ['UNKNOWN', '未知'],
+];
+function renderStatCards(rows) {
+  const code = (r) => normalize(r.statusRaw);
+  $('statTotal').textContent = rows.length;
+  // 人才池按设计方案 D7a 归终态，不计入进行中
+  $('statActive').textContent = rows.filter((r) => !['OFFER', 'REJECTED', 'CLOSED', 'TALENT'].includes(code(r))).length;
+  $('statExam').textContent = rows.filter((r) => ['EXAM', 'INTERVIEW'].includes(code(r))).length;
+  $('statOffer').textContent = rows.filter((r) => code(r) === 'OFFER').length;
+  $('statMail').textContent = ((S.mail || {}).recent || []).length;
+}
+function renderDist(rows) {
+  const counts = new Map(STATUS_META.map(([k]) => [k, 0]));
+  for (const r of rows) { const k = normalize(r.statusRaw); counts.set(k, (counts.get(k) || 0) + 1); }
+  const max = Math.max(1, ...counts.values());
+  $('statusGrid').innerHTML = STATUS_META.map(([k, label]) => `
+    <div class="stage-cell" data-status="${k}">
+      <div class="stage-meta"><span>${label}</span><span>${counts.get(k)}</span></div>
+      <div class="bar"><div class="bar-fill" style="width:${Math.round((counts.get(k) || 0) / max * 100)}%"></div></div>
+    </div>`).join('');
+}
+
+function renderOverview() {
+  const rows = [];
+  for (const s of S.sites) {
+    const at = s.last ? s.last.at : null;
+    for (const r of (s.last && s.last.records || [])) rows.push({ company: s.label, ...r, src: `${s.label}（自动）`, at });
+  }
+  for (const a of S.apps) rows.push({ company: a.company, job: a.job, statusRaw: a.statusRaw, appliedAt: a.appliedAt, src: '手工', at: null });
+  $('ovCount').textContent = rows.length ? `共 ${rows.length} 条` : '';
+  renderStatCards(rows);
+  renderDist(rows);
+  if (!rows.length) { $('overview').innerHTML = '<div class="card empty"><div class="empty-icon">⌕</div>还没有数据 —— 先在上方完成登录/抓包，点「立即查询全部」。</div>'; return; }
+  $('overview').innerHTML = `<table><thead><tr><th>公司</th><th>岗位</th><th>地点</th><th>状态</th><th>原始状态</th><th>数据时间</th></tr></thead><tbody>` +
+    rows.map((r) => `<tr><td data-label="公司">${esc(r.company)}</td><td data-label="岗位"><strong>${esc(r.job)}</strong>${r.dept ? `<span class="dim"> · ${esc(r.dept)}</span>` : ''}</td><td data-label="地点">${esc(r.city || '—')}</td><td data-label="状态">${badge(r.statusRaw)}</td><td data-label="原始状态" class="dim">${esc(r.statusRaw)}</td><td data-label="数据时间" class="dim">${r.at ? cn(r.at) : '—'}</td></tr>`).join('') + '</tbody></table>';
+}
+
+function renderApps() {
+  // 手工列表 UI 已下线（以台账为准）；保留函数避免渲染循环报错
+  if (!$('appCount') || !$('appsBox')) return;
+  $('appCount').textContent = S.apps.length ? `已登记 ${S.apps.length} 条（编辑：直接改 ${esc(S.home)}/apps.json）` : '';
+  if (!S.apps.length) { $('appsBox').innerHTML = ''; return; }
+  $('appsBox').innerHTML = `<table><thead><tr><th>公司</th><th>岗位</th><th>状态</th><th>投递时间</th></tr></thead><tbody>` +
+    S.apps.map((a) => `<tr><td data-label="公司">${esc(a.company)}</td><td data-label="岗位">${esc(a.job)}</td><td data-label="状态">${badge(a.statusRaw)}</td><td data-label="投递时间" class="dim">${esc(a.appliedAt || '—')}</td></tr>`).join('') + '</tbody></table>';
+}
+
+async function doImport() {
+  const text = $('impTxt').value.trim();
+  if (!text) { toast('先粘贴内容'); return; }
+  try { const r = await api('/api/import', { text }); $('impTxt').value = ''; toast(`导入成功：新增 ${r.added}，共 ${r.total}`); }
+  catch (e) { toast(e.message); }
+  await refresh();
+}
+
+function renderSettings() {
+  const isWin = (S.platform || 'darwin') === 'win32';
+  const laOnLabel = isWin ? '开机自启' : '服务常驻';
+  const laRpLabel = isWin ? '查询+邮件定时' : '查询+邮件定时';
+
+  $('fState').textContent = S.feishu.configured ? `· 已配置（${S.feishu.webhookMasked}${S.feishu.hasSecret ? '，带签名' : ''}）` : '· 未配置';
+  $('laKa').textContent = laOnLabel + '：' + ((S.services || {}).console ? '已安装 ✓' : '未安装');
+  $('laKa').className = 'chip ' + ((S.services || {}).console ? 'on' : 'off');
+  $('laRp').textContent = laRpLabel + '：' + ((S.services || {}).schedule ? '已安装 ✓' : '未安装');
+  $('laRp').className = 'chip ' + ((S.services || {}).schedule ? 'on' : 'off');
+  if (!$('fHook').value) $('fHook').placeholder = S.feishu.configured ? '已配置（重新填写并保存可更新）' : 'https://open.feishu.cn/open-apis/bot/v2/hook/xxxx';
+  renderMailAccounts();
+  const mailInfo = S.mail || {};
+  if (!document.getElementById('mailUser').value && mailInfo.configured) $('mailUser').placeholder = mailInfo.userMasked;
+}
+const MAIL_KIND = { EXAM: '笔试', INTERVIEW: '面试', OFFER: 'Offer', REJECTED: '流程结束', SCREENING: '筛选中', APPLIED: '已投递', TALENT: '人才池', INFO: '通知' };
+const mailBadge = (k) => `<span class="b b-${esc(k)}">${MAIL_KIND[k] || k || '通知'}</span>`;
+function renderMail() {
+  const recent = (S.mail || {}).recent || [];
+  if (!recent.length) { $('mailBox').innerHTML = '<div class="card dim" style="margin:14px">还没有邮件通知——在下方「设置与帮手」里配置邮箱并拉取。</div>'; return; }
+  $('mailBox').innerHTML = `<table><thead><tr><th style="width:130px">时间</th><th style="width:90px">类型</th><th style="width:180px">来源</th><th>主题</th></tr></thead><tbody>` +
+    recent.map((n) => `<tr><td data-label="时间" class="dim">${cn(n.at)}</td><td data-label="类型">${mailBadge(n.kind)}</td><td data-label="来源">${esc(n.company)}</td><td data-label="主题">${esc(n.subject)}</td></tr>`).join('') + '</tbody></table>';
+}
+async function saveMailCfg() {
+  try {
+    const r = await api('/api/mail/config', { provider: $('mailProvider').value, user: $('mailUser').value.trim(), pass: $('mailPass').value.trim() });
+    toast(`已保存，共监控 ${r.count} 个邮箱`); $('mailPass').value = '';
+  } catch (e) { toast(e.message); }
+  await refresh();
+}
+async function removeMailAcct(user) {
+  try { await api('/api/mail/config', { user, remove: true }); toast(`已移除 ${user}`); }
+  catch (e) { toast(e.message); }
+  await refresh();
+}
+function renderMailAccounts() {
+  const accounts = (S.mail || {}).accounts || [];
+  $('mailAccounts').innerHTML = accounts.length
+    ? accounts.map(a => `<span class="chip on">${esc(a.userMasked)}（${esc(a.provider)}）<button class="act" style="margin-left:6px;padding:0 6px" onclick="removeMailAcct('${esc(a.user)}')" title="移除此邮箱">✕</button></span>`).join(' ')
+    : '<span class="chip off">未配置任何邮箱</span>';
+  $('mailState').textContent = accounts.length ? `· 已配置 ${accounts.length} 个邮箱` : '· 未配置';
+}
+async function testMail() {
+  try {
+    const r = await api('/api/mail/test', { user: $('mailUser').value.trim() });
+    toast(r.ok ? `连接成功，收件箱 ${r.count} 封` : '连接失败：' + (r.error || '').slice(0, 80));
+  }
+  catch (e) { toast(e.message); }
+}
+function statusOptions() {
+  const choices = [['APPLIED','已投递'],['VIEWED','已查看'],['SCREENING','筛选中'],['TEST','笔试'],['INTERVIEW1','面试中'],['INTERVIEW2','复试'],['HRFACE','HR面'],['OFFER','Offer'],['CLOSED','已结束'],['REJECTED','不合适'],['TALENT','人才池'],['UNKNOWN','未知']];
+  return choices.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+}
+function toggleRecordEdit(site, ri) {
+  const box = document.getElementById(`rec-edit-${site}-${ri}`);
+  if (box) box.hidden = !box.hidden;
+}
+async function saveRecordStatus(site, job, ri) {
+  const status = document.getElementById(`rec-status-${site}-${ri}`).value;
+  try {
+    await api('/api/records/correct', { site, job, status });
+    toast('已修正：下次官网查询后仍保持人工状态');
+    await refresh();
+  } catch (e) { toast(e.message); }
+}
+async function resetRecordStatus(site, job) {
+  try {
+    await api('/api/records/correct', { site, job, reset: true });
+    toast('已还原为官网抓取状态');
+    await refresh();
+  } catch (e) { toast(e.message); }
+}
+async function pollMailNow() { try { await api('/api/mail/poll', {}); toast('已开始拉取邮箱'); } catch (e) { toast(e.message); } await refresh(); }
+async function saveFeishu() {
+  try {
+    await api('/api/feishu', { webhook: $('fHook').value.trim(), secret: $('fSecret').value.trim() });
+    toast('已保存'); $('fSecret').value = '';
+  } catch (e) { toast(e.message); }
+  await refresh();
+}
+async function testFeishu() {
+  try { const r = await api('/api/feishu/test', {}); toast(r.unconfigured ? '先填 webhook 并保存' : (r.ok ? '测试卡片已发出，去群里看' : '发送失败：' + (r.detail || '').slice(0, 80))); }
+  catch (e) { toast(e.message); }
+}
+
+function renderLogs() {
+  const lines = [...(S.busy ? S.busy.logs : []), ...(S.events || []).slice().reverse()];
+  const pre = $('logs');
+  if (lines.length) pre.textContent = lines.slice(-120).reverse().join('\n');
+}
+
+// 侧栏导航高亮（滚动监听，纯展示）
+const spy = new IntersectionObserver((entries) => {
+  for (const e of entries) if (e.isIntersecting) {
+    document.querySelectorAll('.sidebar-nav .nav-item[href^="#sec"]').forEach((a) => {
+      a.classList.toggle('is-active', a.getAttribute('href') === '#' + e.target.id);
+    });
+  }
+}, { rootMargin: '-15% 0px -70% 0px' });
+['secOverview', 'secSites', 'secRecords', 'secMail', 'secImport', 'secSettings'].forEach((id) => { const el = document.getElementById(id); if (el) spy.observe(el); });
+
+refresh();
+</script>
+</body>
+</html>

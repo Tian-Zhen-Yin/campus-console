@@ -1,0 +1,19 @@
+{
+  "name": "ats-status",
+  "version": "0.1.0",
+  "description": "聚合查询 6 家公司招聘系统里的个人投递状态（字节/阿里/美团/携程/小红书/快手）",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "ats": "./src/cli.mjs"
+  },
+  "scripts": {
+    "start": "node src/cli.mjs ui",
+    "ui": "node src/cli.mjs ui",
+    "cli": "node src/cli.mjs"
+  },
+  "dependencies": {
+    "imapflow": "^1.7.8",
+    "playwright": "^1.62.1"
+  }
+}

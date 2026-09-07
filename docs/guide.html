@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>使用指南 · 校招投递管理</title>
+<style>
+  :root {
+    --bg: #f6f8fc;
+    --surface: #ffffff;
+    --surface-soft: #f8faff;
+    --ink: #172033;
+    --muted: #697386;
+    --line: #e5eaf3;
+    --primary: #5367e9;
+    --primary-dark: #4053cb;
+    --primary-soft: #eef0ff;
+    --green: #24a475;
+    --green-soft: #e9f8f2;
+    --amber: #d38a18;
+    --amber-soft: #fff5df;
+    --red: #d95050;
+    --red-soft: #fff0f0;
+    --shadow: 0 8px 28px rgba(33, 45, 75, .07);
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.65;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px 90px; }
+
+  header.top { padding: 34px 0 8px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-mark { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; flex: 0 0 auto;
+    color: #fff; background: linear-gradient(145deg, #7182f2, #4659d9); box-shadow: 0 8px 18px rgba(83, 103, 233, .25); font-size: 23px; }
+  h1 { margin: 0; font-size: 25px; letter-spacing: -.02em; }
+  .subtitle { margin: 3px 0 0; color: var(--muted); font-size: 14px; }
+  .top-actions { margin-left: auto; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 11px;
+    min-height: 42px; padding: 0 15px; font-weight: 650; font-size: 14px; transition: .18s ease; }
+  .btn:hover { transform: translateY(-1px); border-color: #ccd3e2; box-shadow: 0 5px 14px rgba(33, 45, 75, .08); }
+  .btn-primary { border-color: var(--primary); background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+
+  nav { position: sticky; top: 0; z-index: 10; background: rgba(246, 248, 252, .94); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line); margin: 18px 0 8px; }
+  nav .wrap { display: flex; gap: 6px; padding: 9px 20px; flex-wrap: wrap; }
+  nav a { text-decoration: none; color: #59657a; font-size: 13px; font-weight: 650; padding: 6px 13px; border-radius: 999px; transition: .15s ease; }
+  nav a:hover { background: var(--primary-soft); color: var(--primary-dark); }
+
+  section { margin-top: 34px; }
+  h2 { display: flex; align-items: baseline; gap: 10px; font-size: 20px; margin: 0 0 6px; letter-spacing: -.01em; }
+  h2 .no { color: var(--primary); font-size: 13px; font-weight: 800; letter-spacing: .08em; }
+  .lead { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 22px; margin: 14px 0; }
+  .panel h3 { font-size: 15px; margin: 14px 0 6px; }
+  p { font-size: 14px; margin: 8px 0; }
+  .dim { color: var(--muted); font-size: 13px; }
+  b { font-weight: 720; }
+
+  .steps { list-style: none; margin: 10px 0; padding: 0; counter-reset: step; }
+  .steps > li { counter-increment: step; position: relative; padding: 12px 0 12px 46px; border-bottom: 1px dashed var(--line); }
+  .steps > li:last-child { border-bottom: none; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 12px; width: 30px; height: 30px;
+    border-radius: 10px; background: var(--primary); color: #fff; display: grid; place-items: center; font-size: 14px; font-weight: 800; }
+  .steps strong { display: block; font-size: 14.5px; }
+  .steps span { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 13.5px; margin: 12px 0; }
+  th, td { text-align: left; padding: 10px 13px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--surface-soft); color: var(--muted); font-weight: 700; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+
+  .badge { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 9px; border-radius: 8px;
+    background: var(--primary-soft); color: var(--primary-dark); font-size: 12px; font-weight: 760; white-space: nowrap; }
+  .badge.green { background: var(--green-soft); color: #1d7a58; }
+  .badge.amber { background: var(--amber-soft); color: var(--amber); }
+  .badge.gray { background: #eef1f6; color: #8a94a6; }
+
+  .callout { display: flex; gap: 10px; align-items: flex-start; border-radius: 13px; padding: 13px 15px; margin: 12px 0; font-size: 13.5px; }
+  .callout .ico { font-size: 16px; line-height: 1.4; }
+  .callout.tip { background: var(--primary-soft); color: var(--primary-dark); }
+  .callout.ok { background: var(--green-soft); color: #1d7a58; }
+  .callout.warn { background: var(--amber-soft); color: #8a5a10; }
+  .callout.danger { background: var(--red-soft); color: #943434; }
+
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; margin: 9px 0; box-shadow: var(--shadow); }
+  details summary { cursor: pointer; padding: 13px 17px; font-weight: 700; font-size: 14px; list-style: none; }
+  details summary::after { content: "＋"; float: right; color: var(--muted); font-weight: 400; }
+  details[open] summary::after { content: "－"; }
+  details .body { padding: 0 17px 15px; font-size: 14px; }
+
+  .check { display: flex; gap: 10px; align-items: flex-start; padding: 9px 6px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+  .check:hover { background: var(--surface-soft); }
+  .check input { margin-top: 4px; width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+  .check.done .txt { text-decoration: line-through; color: #9aa3b5; }
+  .bar { height: 8px; background: #e9edf5; border-radius: 999px; overflow: hidden; margin: 8px 0 4px; }
+  .bar > div { height: 100%; background: linear-gradient(90deg, #7182f2, #5367e9); width: 0; transition: width .3s; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .kbd { border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; font-size: 12px; background: #fff; }
+  code { background: #eef2f7; border-radius: 5px; padding: 1px 6px; font: 12.5px ui-monospace, Menlo, monospace; }
+  figure.shot { margin: 16px 0; }
+  figure.shot img { display: block; width: 100%; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+  figure.shot figcaption { margin-top: 8px; color: var(--muted); font-size: 12.5px; text-align: center; }
+  figure.shot.narrow { max-width: 620px; margin-left: auto; margin-right: auto; }
+  .foot { margin-top: 56px; color: #9aa3b5; font-size: 12px; text-align: center; }
+  @media (max-width: 720px) {
+    .grid2 { grid-template-columns: 1fr; }
+    header.top .btn { width: 100%; margin-top: 12px; }
+    .brand { flex-wrap: wrap; }
+    .top-actions { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap brand">
+    <div class="brand-mark" aria-hidden="true">↗</div>
+    <div>
+      <h1>校招投递管理 · 使用指南</h1>
+      <div class="subtitle">投递有台账、进展自动跟、安排帮你看——这份指南讲的都是「点哪里」，不用记任何命令</div>
+    </div>
+    <div class="top-actions"><a class="btn btn-primary" href="/">← 返回台账</a></div>
+  </div>
+</header>
+
+<nav><div class="wrap">
+  <a href="#what">它是什么</a>
+  <a href="#start">第一次使用</a>
+  <a href="#daily">每天怎么用</a>
+  <a href="#follow">自动跟进</a>
+  <a href="#mail">邮件邀约</a>
+  <a href="#data">数据与备份</a>
+  <a href="#phone">手机上用</a>
+  <a href="#faq">常见问题</a>
+  <a href="#adv">进阶</a>
+</div></nav>
+
+<div class="wrap">
+
+<!-- ============ 它是什么 ============ -->
+<section id="what">
+  <h2><span class="no">01</span>它是什么</h2>
+  <p class="lead">一句话：你在<b>台账</b>里记投递、看进度；电脑上的<b>控制台</b>替你盯着各公司官网，进展自动回填，拿不准的来问你。</p>
+  <div class="panel">
+    <p><b>台账</b>（日常用的页面）：记录每一条投递、管理岗位库、看阶段分布和面试安排。所有数据只存在<b>你自己的浏览器</b>里，不上传任何服务器。</p>
+    <p><b>控制台</b>（背后的助手）：登录过哪家公司官网，它就能低频、克制地读取那家的「我的投递」，把最新状态带回台账；笔试/面试邀约邮件也会帮你盯着。你平时不需要打开它。</p>
+    <p class="dim">三句话记住：接入公司 → 状态自动更新 → 拿不准的进展请你拍板。</p>
+    <figure class="shot">
+      <img src="/guide-img/home.png" alt="台账首页：今天要做的、投递总览、阶段分布" loading="lazy">
+      <figcaption>台账首页——打开就能看到今天要做的四件事</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ 第一次使用 ============ -->
+<section id="start">
+  <h2><span class="no">02</span>第一次使用（约 15 分钟，做完一次就不用管）</h2>
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <strong>上手清单</strong>
+      <span class="dim" id="ckStat">0 / 4</span>
+    </div>
+    <div class="bar"><div id="ckBar"></div></div>
+    <label class="check" data-k="open"><input type="checkbox"><span class="txt"><strong>在电脑 Chrome 里打开台账并收藏</strong>——地址是 <code>http://127.0.0.1:7788</code></span></label>
+    <label class="check" data-k="apply"><input type="checkbox"><span class="txt"><strong>投出并记录第一份岗位</strong>——「找岗位」同步岗位库，投完后点「记为已投递」</span></label>
+    <label class="check" data-k="connect"><input type="checkbox"><span class="txt"><strong>接入一家已投的公司</strong>——「自动跟进」→「去接入」→ 扫码登录 →「我登录好了」</span></label>
+    <label class="check" data-k="mail"><input type="checkbox"><span class="txt"><strong>（可选）配好邮箱监控</strong>——面试笔试邀约邮件自动进台账</span></label>
+  </div>
+
+  <div class="panel">
+    <h3>关于「一键收录插件」（可选）</h3>
+    <p>「同步腾讯文档」和「识别投递网址」两个功能需要一个浏览器插件帮你在已登录的腾讯文档里读取岗位。在台账里点同步时，会弹出安装指引，照着做即可。<b>不装插件也完全能用</b>：岗位可以手动「新增投递」，或在同步弹窗里用「粘贴表格内容导入」。</p>
+    <h3>关于接入公司</h3>
+    <p>接入 = 用你自己的账号扫码登录一次该公司招聘官网。之后控制台会<b>像真人一样低频地</b>帮你查看投递进展（每天两三次、深夜从不查询）。哪家没接入，那家就保持手动维护，随时可以补接。</p>
+  </div>
+</section>
+
+<!-- ============ 每天怎么用 ============ -->
+<section id="daily">
+  <h2><span class="no">03</span>每天怎么用</h2>
+  <p class="lead">打开台账，先看「今天要做的」四张卡，数字清零就可以安心去投新岗位。</p>
+  <div class="panel">
+    <table>
+      <tr><th>卡片</th><th>意思</th><th>点它会发生什么</th></tr>
+      <tr><td><b>N 条进展需要你拍板</b></td><td>官网进展和你的记录有出入，或发现你还没记录的投递</td><td>打开拍板弹窗，一次一条，按提示选一下</td></tr>
+      <tr><td><b>七天内笔试 / 面试</b></td><td>最近的安排（含邮件里识别到的）</td><td>跳到投递列表去准备</td></tr>
+      <tr><td><b>N 家公司还没接入</b></td><td>你投了但还没接官网的公司</td><td>引导你扫码接入</td></tr>
+      <tr><td><b>N 条记录可以自动更新</b></td><td>官网有这家的数据，但记录还没连上</td><td>编辑记录，点选官网条目连上</td></tr>
+    </table>
+    <p>记录「当前阶段」旁的小徽章告诉你这条的来源：</p>
+    <p><span class="badge green">🔗</span> 官网自动更新中　<span class="badge gray">✎</span> 手动维护　<span class="badge amber">🔗⚠</span> 官网已无此条（自动转手动，数据没丢，编辑里可重新绑定）</p>
+    <figure class="shot">
+      <img src="/guide-img/records.png" alt="投递记录列表：阶段徽章与来源标记" loading="lazy">
+      <figcaption>「我的投递」——每条记录的来源一目了然</figcaption>
+    </figure>
+    <p class="dim">点「编辑」还能在弹窗里直接连接或更换官网条目：</p>
+    <figure class="shot narrow">
+      <img src="/guide-img/bind.png" alt="编辑弹窗中的官网绑定区" loading="lazy">
+      <figcaption>编辑弹窗里的「官网绑定」——把记录连上官网条目即可自动更新</figcaption>
+    </figure>
+    <p class="dim">想立刻看最新状态？「自动跟进」右上角点「现在刷新」。平时每天 9:30 / 14:30 / 20:00 自动更新，不用守着。</p>
+  </div>
+</section>
+
+<!-- ============ 自动跟进 ============ -->
+<section id="follow">
+  <h2><span class="no">04</span>自动跟进与拍板</h2>
+  <div class="panel">
+    <p>「自动跟进」区块里是公司卡片的三种状态：</p>
+    <p><span class="badge gray">未接入</span> 还没扫码——点「去接入」，弹出官网登录窗口，登录后回来点「我登录好了」。<br>
+       <span class="badge amber">待完成登录</span> 登录窗口开着还没完成——回窗口扫码，再点「我登录好了」。<br>
+       <span class="badge green">已连接</span> 一切正常，显示上次更新时间和跟进的投递数。</p>
+    <figure class="shot">
+      <img src="/guide-img/follow.png" alt="自动跟进区块：公司接入状态卡片" loading="lazy">
+      <figcaption>「自动跟进」——接入过的公司在这里各自报告状态</figcaption>
+    </figure>
+    <h3>拍板弹窗长什么样</h3>
+    <p>一次只问一件事，两个选择，几秒搞定：</p>
+    <table>
+      <tr><th>场景</th><th>它会怎么问</th></tr>
+      <tr><td>官网说已结束，但你改过这条</td><td>「官网显示这条已经已结束，而且是你自己改过的——听官网的吗？」→ <b>听官网的 / 保留我的</b></td></tr>
+      <tr><td>你标记结束的流程又有动静</td><td>「恢复跟进吗？」→ <b>恢复跟进 / 保持结束</b></td></tr>
+      <tr><td>官网有你没记录的投递</td><td>「记入台账吗？」→ <b>记入台账 / 不是我的</b></td></tr>
+      <tr><td>官网有条记录和你的很像</td><td>「是你记录里的哪一条吗？」→ 点选对应记录</td></tr>
+      <tr><td>邮箱里发现面试/笔试邀约</td><td>「是你哪条投递的安排？」→ 点选记录，时间自动填入</td></tr>
+    </table>
+    <figure class="shot narrow">
+      <img src="/guide-img/adjudicate.png" alt="拍板弹窗：邮箱邀约确认" loading="lazy">
+      <figcaption>拍板弹窗——一次一条、两个选择，几秒搞定</figcaption>
+    </figure>
+    <div class="callout tip"><span class="ico">💡</span><div>拿不准就选「这条先不管」——它会被记住，不会反复来烦你。所有自动改动都能在「数据安全 → 恢复上一个快照」一键撤销。</div></div>
+  </div>
+</section>
+
+<!-- ============ 邮件邀约 ============ -->
+<section id="mail">
+  <h2><span class="no">05</span>邮件邀约（面试笔试提醒的来路）</h2>
+  <div class="panel">
+    <p>总览里的笔试/面试安排，一部分就是这么来的：控制台读取你邮箱里<b>面试/笔试邀请</b>类邮件，认出时间、轮次和会议地点，然后到台账问你「是你哪条投递的安排？」，点选确认后自动填入安排时间。</p>
+    <h3>怎么配邮箱（控制台 → 邮件与推送）</h3>
+    <ol class="steps">
+      <li><strong>去邮箱官网生成「授权码」</strong><span>163：设置 → POP3/SMTP/IMAP → 开启服务并生成授权码；QQ 邮箱：设置 → 账户 → 开启 IMAP/SMTP → 生成授权码；Gmail：开启两步验证后生成应用专用密码。授权码不是登录密码。</span></li>
+      <li><strong>在控制台填入</strong><span>选服务商 → 填邮箱地址和授权码 → 保存。可以添加多个邮箱，每轮会全部检查。</span></li>
+      <li><strong>点「测试连接」验证</strong><span>提示连接成功即可。之后每天三次自动检查，也可以在「邮件通知」卡点「立即拉取」。</span></li>
+    </ol>
+    <div class="callout ok"><span class="ico">✓</span><div>邮件只在你的电脑上读取，不会上传；识别不出时间的邀约不会乱写安排——宁缺毋滥。</div></div>
+  </div>
+</section>
+
+<!-- ============ 数据与备份 ============ -->
+<section id="data">
+  <h2><span class="no">06</span>数据与备份</h2>
+  <div class="panel">
+    <p>你的投递记录只存在<b>这台电脑的这台浏览器</b>里。台账已经有两层保护（实时保存 + 最近 25 个历史快照），建议再加一道保险：</p>
+    <ol class="steps">
+      <li><strong>设置自动备份文件（推荐，1 分钟）</strong><span>「数据安全 → 设置自动备份文件」，选一个位置（比如移动硬盘或网盘同步文件夹）。之后每次改动自动写一份进去。</span></li>
+      <li><strong>改错了？一键回滚</strong><span>「数据安全 → 恢复上一个快照」，会先自动下载当前数据的备份再恢复。</span></li>
+      <li><strong>换电脑 / 换浏览器</strong><span>旧设备「导出数据」→ 新设备「导入备份文件」。导入前系统还会再自动备份一次，不怕手滑。</span></li>
+    </ol>
+    <div class="callout warn"><span class="ico">⚠️</span><div>两个标签页同时开台账时，一边保存另一边会收到提示——按提示刷新即可，避免互相覆盖。导出的备份文件等于全部投递记录，别发给别人。</div></div>
+  </div>
+</section>
+
+<!-- ============ 手机上用 ============ -->
+<section id="phone">
+  <h2><span class="no">07</span>手机上用</h2>
+  <div class="panel">
+    <p>台账可以像 App 一样装到手机桌面（需要先通过电脑访问的地址在手机浏览器打开；同一局域网内用电脑的 IP 地址即可）：</p>
+    <div class="grid2">
+      <div class="panel" style="margin:0"><h3 style="margin-top:0">iPhone / iPad（Safari）</h3><p class="dim">打开页面 → 底部「分享」→「添加到主屏幕」→ 添加。</p></div>
+      <div class="panel" style="margin:0"><h3 style="margin-top:0">Android（Chrome）</h3><p class="dim">右上角菜单 →「安装应用」或「添加到主屏幕」。</p></div>
+    </div>
+    <p class="dim">注意：自动跟进由你电脑上的控制台负责，手机上适合当「随身账本」——记录和查看都正常，只是不会自动更新官网状态。换手机前先「导出数据」。</p>
+  </div>
+</section>
+
+<!-- ============ 常见问题 ============ -->
+<section id="faq">
+  <h2><span class="no">08</span>常见问题</h2>
+  <details><summary>为什么接入公司要我自己扫码？能全自动吗？</summary><div class="body">各大招聘系统的登录都靠扫码/短信验证，这是平台刻意的安全设计。工具选择「你人工登录一次，之后它像真人一样低频查看」——这是安全与自动化之间最稳妥的平衡。</div></details>
+  <details><summary>某家公司显示「待完成登录」或状态很久没更新？</summary><div class="body">说明那家的登录过期了。在「自动跟进」找到该公司，点「去接入」重新扫码即可，其余公司不受影响。</div></details>
+  <details><summary>官网状态和我自己记的不一样，听谁的？</summary><div class="body">工具不替你做主——弹拍板卡让你选。一般建议听官网的（官网更及时）；如果你有特殊判断（比如流程实际还在走），选「保留我的」，你的选择优先。</div></details>
+  <details><summary>会不会把我的账号弄出问题？</summary><div class="body">工具严格按真人节奏工作：每家每天两三次页面访问、带随机间隔、深夜零查询。请不要手动调高查询频率；如果某家官网弹出验证码，就在控制台停用那家的自动查询，改为人工查看。</div></details>
+  <details><summary>记录删错了 / 改错了怎么办？</summary><div class="body">「数据安全 → 恢复上一个快照」。最近 25 个版本都可以回，恢复前还会自动备份当前数据。</div></details>
+  <details><summary>支持哪些公司？</summary><div class="body">美团、字节跳动、快手、携程、小红书、阿里巴巴开箱即用；投了这些公司，台账会自动出现对应卡片。其它公司正常手动记录，控制台里也可以添加新的官网（需要一点折腾，见「进阶」）。</div></details>
+  <details><summary>使用一段时间后想彻底清理？</summary><div class="body">先「导出数据」留档。电脑上的控制台及其数据都在 <code>~/.ats-status</code> 文件夹，整个删掉即可，无云端残留；浏览器里的台账数据清除该站点数据即可。</div></details>
+</section>
+
+<!-- ============ 进阶 ============ -->
+<section id="adv">
+  <h2><span class="no">09</span>进阶（大多数人不需要）</h2>
+  <details><summary>控制台是什么？我什么时候需要打开它？</summary><div class="body">地址是 <code>http://127.0.0.1:7788/console/</code>（或台账「设置 → 投递控制台」）。需要进去的场合：某家公司要重新接入、配置邮箱监控或飞书提醒、查看运行日志、添加新的招聘官网。日常记录和看进度完全不用进。</div></details>
+  <details><summary>添加控制台没预置的公司官网</summary><div class="body">控制台「官网引擎」里可以编辑站点入口或新增自定义站点；接好后同样「登录接入 → 查询」。内置站点覆盖了常见的招聘系统（Moka、北森等），同系统的公司往往可以直接沿用。</div></details>
+  <details><summary>飞书提醒（可选）</summary><div class="body">想要手机上收提醒：飞书建个群 → 群设置 → 群机器人 → 添加「自定义机器人」→ 复制 webhook 地址 → 控制台「邮件与推送」粘贴保存 → 点「发测试卡片」。webhook 地址等于往群里发消息的钥匙，不要发给任何人。</div></details>
+  <details><summary>定时任务说明</summary><div class="body">官网状态检查由电脑的定时任务负责（工作日 9:30 / 14:30 / 20:00，随查询顺带检查邮箱）。它随控制台自动安装，无需手动配置；Mac 关机期间不查询也不丢数据，开机自动补上。</div></details>
+</section>
+
+<div class="foot">校招投递管理 · 数据只属于你 · 这份指南由产品内直接打开，遇到页面与描述不符时以页面为准</div>
+</div>
+
+<script>
+// 上手清单（本浏览器持久保存）
+const KEY = 'ats-guide-checklist-v2';
+const checks = [...document.querySelectorAll('.check')];
+const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+function refresh() {
+  const done = checks.filter((c) => c.querySelector('input').checked).length;
+  document.getElementById('ckStat').textContent = done + ' / ' + checks.length;
+  document.getElementById('ckBar').style.width = (done / checks.length * 100) + '%';
+  checks.forEach((c) => c.classList.toggle('done', c.querySelector('input').checked));
+}
+checks.forEach((c) => {
+  const input = c.querySelector('input');
+  input.checked = !!saved[c.dataset.k];
+  input.addEventListener('change', () => {
+    saved[c.dataset.k] = input.checked;
+    localStorage.setItem(KEY, JSON.stringify(saved));
+    refresh();
+  });
+});
+refresh();
+// 导航平滑滚动
+document.querySelectorAll('nav a').forEach((a) => a.addEventListener('click', (e) => {
+  e.preventDefault();
+  document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+}));
+</script>
+</body>
+</html>
